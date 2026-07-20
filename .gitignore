@@ -1,7 +1,10 @@
-/*.egg-info/
-/.rtx.*.local.toml
-/.rtx.local.toml
-/build/
-/dist/
-/venv/
-/wheelhouse/
+*.egg-info/
+.rtx.*.local.toml
+.rtx.local.toml
+build/
+dist/
+venv/
+.venv/
+wheelhouse/
+__pycache__/
+*.py[cod]

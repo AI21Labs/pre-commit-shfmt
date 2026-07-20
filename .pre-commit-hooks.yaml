@@ -2,33 +2,8 @@
   name: shfmt
   description: Shell source code formatter (prebuilt upstream executable)
   language: python
-  entry: shfmt
-  args: [--write]
-  types: [shell]
-  exclude_types: [csh, tcsh]
-  stages: [pre-commit, pre-merge-commit, pre-push, manual]
-  minimum_pre_commit_version: 3.2.0 # for "stages" names
-
-- id: shfmt-src
-  name: shfmt
-  description: Shell source code formatter (build from source)
-  language: golang
-  # Note: keep Go version in `go.mod` in sync with shfmt's required Go version
-  additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.13.1]
-  entry: shfmt
-  args: [--write]
-  types: [shell]
-  exclude_types: [csh, tcsh]
-  stages: [pre-commit, pre-merge-commit, pre-push, manual]
-  minimum_pre_commit_version: 3.2.0 # for "stages" names
-
-- id: shfmt-docker
-  name: shfmt
-  description: Shell source code formatter (Docker image)
-  language: docker_image
-  # Note: use the top level multiplatform image digest here
-  entry: --net none mvdan/shfmt:v3.13.1@sha256:f22f3936140be1ba02d493b5d2b91d0e8b4af93fd903e7f46c477822bca4a3be
-  args: [--write]
+  # Wrapper console script: runs shfmt, then dedents multi-line && / || / | operands.
+  entry: shfmt-dedent
   types: [shell]
   exclude_types: [csh, tcsh]
   stages: [pre-commit, pre-merge-commit, pre-push, manual]

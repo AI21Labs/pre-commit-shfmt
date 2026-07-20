@@ -25,7 +25,7 @@ from urllib.parse import quote as urlquote, urljoin
 
 setup_cfg_template = """
 [metadata]
-name = shfmt_py
+name = shfmt_dedent
 version = ${python_pkg_version}
 description = Shell source code formatter
 url = https://github.com/scop/pre-commit-shfmt
@@ -42,9 +42,14 @@ project_urls =
 
 [options]
 packages =
+    shfmt_dedent
 python_requires = >=3.8
 setup_requires =
     setuptools-download
+
+[options.entry_points]
+console_scripts =
+    shfmt-dedent = shfmt_dedent:main
 
 [setuptools_download]
 download_scripts =

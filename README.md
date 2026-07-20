@@ -15,10 +15,7 @@ Usage in `.pre-commit-config.yaml`:
 - repo: https://github.com/scop/pre-commit-shfmt
   rev: v3.13.1-1
   hooks:
-    # Choose one of:
-    - id: shfmt         # prebuilt upstream executable
-    - id: shfmt-src     # build from source (requires/installs Go to build)
-    - id: shfmt-docker  # Docker image (requires Docker to run)
+    - id: shfmt  # prebuilt upstream executable
 ```
 
 > #### Notes
@@ -27,5 +24,19 @@ Usage in `.pre-commit-config.yaml`:
 > [no longer contain `-s`](https://github.com/mvdan/sh/issues/1173).
 >
 > From v3.7.0-2 on, the `shfmt` id points to the variant that uses a prebuilt
-> upstream executable. The one that builds from source is available as
-> `shfmt-src`.
+> upstream executable.
+
+## Development
+
+Use `run.sh` to run tests or `tox` inside a local virtualenv. On first run it
+creates `.venv` and installs the package with its `test` and `dev` extras,
+reusing the environment on subsequent runs.
+
+```sh
+./run.sh pytest          # run the test suite
+./run.sh pytest -k gpu   # extra args are forwarded to pytest
+./run.sh tox             # run tox across the configured interpreters
+```
+
+Set `PYTHON` to control the interpreter used to bootstrap the virtualenv, e.g.
+`PYTHON=python3.13 ./run.sh pytest`.
