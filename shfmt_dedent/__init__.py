@@ -52,7 +52,12 @@ def _dedent(text: str) -> str:
             continue
 
         ind = _LEADING_SPACES.match(line).end()
-        if _OPERATOR.match(line):
+        # shfmt -bn always indents an operand at least one level, so a real
+        # operator line is never at column 0. Requiring `ind >= 4` keeps
+        # line-initial `|` inside a string literal (e.g. a markdown table row in
+        # a multi-line assignment) from opening a region that swallows the rest
+        # of the file.
+        if ind >= 4 and _OPERATOR.match(line):
             nb = ind - 4  # column to align the operator to
             while base and base[-1] >= nb:  # drop siblings/shallower regions
                 base.pop()
