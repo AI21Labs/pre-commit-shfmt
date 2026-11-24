@@ -70,6 +70,29 @@ def test_heredoc_first_line_starting_with_an_expansion_keeps_its_indentation(
     assert _format(tmp_path, monkeypatch, text) == expected
 
 
+def test_non_newline_line_break_in_a_string_is_kept_and_does_not_shift_lines(
+    tmp_path, monkeypatch
+):
+    text = (
+        "#!/bin/bash\n"
+        "x='a\x1cb'\n"
+        "true \\\n"
+        "    && echo '\n"
+        "    | keep\n"
+        "    '\n"
+    )
+    expected = (
+        "#!/bin/bash\n"
+        "x='a\x1cb'\n"
+        "true \\\n"
+        "&& echo '\n"
+        "    | keep\n"
+        "    '\n"
+    )
+
+    assert _format(tmp_path, monkeypatch, text) == expected
+
+
 def test_pipeline_in_command_substitution_inside_a_string_is_dedented(
     tmp_path, monkeypatch
 ):

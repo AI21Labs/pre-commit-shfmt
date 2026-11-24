@@ -76,12 +76,13 @@ def _dedent(text: str, string_lines: frozenset[int]) -> str:
     """Dedent the operands of multi-line ``&&`` / ``||`` / ``|`` compounds.
 
     Processes the text one line at a time, keeping a stack of open operand
-    regions so nested operators are handled in a single pass. Returns the transformed text with every line
-    terminated by ``\\n``.
+    regions so nested operators are handled in a single pass.
     """
     base: list[int] = []  # base column of each open operand region
     out: list[str] = []
-    for number, line in enumerate(text.splitlines(), start=1):
+    # Split on "\n" only: shfmt numbers lines that way, and splitlines() would
+    # also break on characters such as \x1c or   inside strings.
+    for number, line in enumerate(text.split("\n"), start=1):
         if number in string_lines or _BLANK.match(line):
             out.append(line)
             continue
@@ -102,8 +103,7 @@ def _dedent(text: str, string_lines: frozenset[int]) -> str:
             dedent = ind
         out.append(line[dedent:])
 
-    # awk terminates every record with ORS (\n), so each line gets one.
-    return "".join(line + "\n" for line in out)
+    return "\n".join(out)
 
 
 def _format_file(path: str) -> None:
