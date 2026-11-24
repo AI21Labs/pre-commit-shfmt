@@ -55,14 +55,17 @@ def _string_lines(text: str) -> frozenset[int]:
             nodes.extend(node)
         elif isinstance(node, dict):
             nodes.extend(node.values())
+            # A heredoc body starts at column 1, so its first line is content even
+            # when no multi-line literal spans it, e.g. when it starts with $(...).
+            if "Hdoc" in node:
+                lines.add(node["Hdoc"]["Pos"]["Line"])
             # Code in a $(...) inside a string is its own node, so its lines stay code.
             if node.get("Type") not in ("Lit", "SglQuoted"):
                 continue
             start, end = node["Pos"], node["End"]
             if start["Line"] == end["Line"]:
                 continue
-            # A heredoc body's literal starts at column 1, so its first line is content.
-            first = start["Line"] if start["Col"] == 1 else start["Line"] + 1
+            first = start["Line"] + 1
             # End is exclusive: ending at column 1 leaves that line outside the node.
             last = end["Line"] if end["Col"] > 1 else end["Line"] - 1
             lines.update(range(first, last + 1))

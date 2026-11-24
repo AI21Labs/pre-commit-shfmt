@@ -47,6 +47,29 @@ def test_heredoc_body_keeps_its_indentation(tmp_path, monkeypatch):
     assert _format(tmp_path, monkeypatch, text) == text
 
 
+def test_heredoc_first_line_starting_with_an_expansion_keeps_its_indentation(
+    tmp_path, monkeypatch
+):
+    text = (
+        "#!/bin/bash\n"
+        "true \\\n"
+        "    && cat << EOF\n"
+        "    $(date)\n"
+        "    x\n"
+        "EOF\n"
+    )
+    expected = (
+        "#!/bin/bash\n"
+        "true \\\n"
+        "&& cat << EOF\n"
+        "    $(date)\n"
+        "    x\n"
+        "EOF\n"
+    )
+
+    assert _format(tmp_path, monkeypatch, text) == expected
+
+
 def test_pipeline_in_command_substitution_inside_a_string_is_dedented(
     tmp_path, monkeypatch
 ):
