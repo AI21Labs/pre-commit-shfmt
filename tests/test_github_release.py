@@ -34,6 +34,9 @@ def test_formatter_preserves_markdown_table_in_string(tmp_path, monkeypatch):
     assert target.read_text(encoding="utf-8") == original
 
 
+@pytest.mark.skipif(
+    shutil.which("shfmt") is None, reason="shfmt binary not on PATH"
+)
 def test_dedent_ignores_line_initial_pipe_in_string():
     """A ``|`` inside a string must not dedent the code that follows it."""
     text = (
@@ -48,4 +51,4 @@ def test_dedent_ignores_line_initial_pipe_in_string():
         "}\n"
     )
 
-    assert shfmt_dedent._dedent(text) == text
+    assert shfmt_dedent._dedent(text, shfmt_dedent._string_lines(text)) == text

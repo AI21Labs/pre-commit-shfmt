@@ -14,9 +14,11 @@ base column is one level (4 spaces) shallower than the operator; every line lose
 to its base column; a sibling operator at the same column reopens at the same
 depth (it continues the same list, it does not nest). Mid-line operators (e.g.
 inside ``[[ a || b ]]``) and single-line lists never match, so they are left
-untouched.
+untouched. So are lines that start inside a quoted string or a heredoc body: their
+indentation and any leading ``|`` are string content, such as a jq program.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -37,27 +39,56 @@ _BLANK = re.compile(r"^[ \t\r\f\v]*$")
 _OPERATOR = re.compile(r"^[ \t\r\f\v]*(\|\|?|&&)([ \t\r\f\v]|$)")
 
 
-def _dedent(text: str) -> str:
+def _string_lines(text: str) -> frozenset[int]:
+    result = subprocess.run(
+        ["shfmt", "--to-json"],
+        input=text,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lines: set[int] = set()
+    nodes = [json.loads(result.stdout)]
+    while nodes:
+        node = nodes.pop()
+        if isinstance(node, list):
+            nodes.extend(node)
+        elif isinstance(node, dict):
+            nodes.extend(node.values())
+            # A heredoc body starts at column 1, so its first line is content even
+            # when no multi-line literal spans it, e.g. when it starts with $(...).
+            if "Hdoc" in node:
+                lines.add(node["Hdoc"]["Pos"]["Line"])
+            # Code in a $(...) inside a string is its own node, so its lines stay code.
+            if node.get("Type") not in ("Lit", "SglQuoted"):
+                continue
+            start, end = node["Pos"], node["End"]
+            if start["Line"] == end["Line"]:
+                continue
+            first = start["Line"] + 1
+            # End is exclusive: ending at column 1 leaves that line outside the node.
+            last = end["Line"] if end["Col"] > 1 else end["Line"] - 1
+            lines.update(range(first, last + 1))
+    return frozenset(lines)
+
+
+def _dedent(text: str, string_lines: frozenset[int]) -> str:
     """Dedent the operands of multi-line ``&&`` / ``||`` / ``|`` compounds.
 
     Processes the text one line at a time, keeping a stack of open operand
-    regions so nested operators are handled in a single pass. Returns the transformed text with every line
-    terminated by ``\\n``.
+    regions so nested operators are handled in a single pass.
     """
     base: list[int] = []  # base column of each open operand region
     out: list[str] = []
-    for line in text.splitlines():
-        if _BLANK.match(line):
+    # Split on "\n" only: shfmt numbers lines that way, and splitlines() would
+    # also break on characters such as \x1c or   inside strings.
+    for number, line in enumerate(text.split("\n"), start=1):
+        if number in string_lines or _BLANK.match(line):
             out.append(line)
             continue
 
         ind = _LEADING_SPACES.match(line).end()
-        # shfmt -bn always indents an operand at least one level, so a real
-        # operator line is never at column 0. Requiring `ind >= 4` keeps
-        # line-initial `|` inside a string literal (e.g. a markdown table row in
-        # a multi-line assignment) from opening a region that swallows the rest
-        # of the file.
-        if ind >= 4 and _OPERATOR.match(line):
+        if _OPERATOR.match(line):
             nb = ind - 4  # column to align the operator to
             while base and base[-1] >= nb:  # drop siblings/shallower regions
                 base.pop()
@@ -72,8 +103,7 @@ def _dedent(text: str) -> str:
             dedent = ind
         out.append(line[dedent:])
 
-    # awk terminates every record with ORS (\n), so each line gets one.
-    return "".join(line + "\n" for line in out)
+    return "\n".join(out)
 
 
 def _format_file(path: str) -> None:
@@ -86,7 +116,7 @@ def _format_file(path: str) -> None:
         text=True,
         check=True,
     )
-    transformed = _dedent(result.stdout)
+    transformed = _dedent(result.stdout, _string_lines(result.stdout))
     if transformed != original:
         with open(path, "w", encoding="utf-8") as f:
             f.write(transformed)
